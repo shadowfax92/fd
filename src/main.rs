@@ -19,10 +19,12 @@ use std::time;
 
 use anyhow::{anyhow, Context, Result};
 use atty::Stream;
+use debug_print::debug_println;
 use globset::GlobBuilder;
 use lscolors::LsColors;
 use regex::bytes::{RegexBuilder, RegexSetBuilder};
 
+// use crate::debug_print;
 use crate::error::print_error;
 use crate::exec::CommandTemplate;
 use crate::exit_codes::ExitCode;
@@ -103,6 +105,7 @@ fn run() -> Result<ExitCode> {
 
     let only_whitelists = matches.is_present("whitelists");
     let mut search_paths = if only_whitelists {
+        debug_println!("only-whitelists option passed");
         let mut directories = vec![];
         for path in get_whitelists() {
             let path_buffer = PathBuf::from(path);
@@ -127,9 +130,27 @@ fn run() -> Result<ExitCode> {
             }
             directories
         } else {
-            vec![current_directory.to_path_buf()]
+            // by default if whitelists are present use that.
+            if Path::new("./.whitelists").is_file() {
+                debug_println!("Found .whitelists file");
+                let mut directories = vec![];
+                for path in get_whitelists() {
+                    let path_buffer = PathBuf::from(path);
+                    if filesystem::is_dir(&path_buffer) {
+                        directories.push(path_buffer);
+                    }
+                }
+                directories
+            } else {
+                vec![current_directory.to_path_buf()]
+            }
         }
     };
+
+    debug_println!("search paths:");
+    for path in &search_paths {
+        debug_println!("{:?}", path);
+    }
 
     // Check if we have no valid search paths.
     if search_paths.is_empty() {
