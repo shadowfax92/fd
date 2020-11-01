@@ -101,21 +101,8 @@ fn run() -> Result<ExitCode> {
         .values_of_os("path")
         .or_else(|| matches.values_of_os("search-path"));
 
-    let mut search_paths = if let Some(paths) = passed_arguments {
-        let mut directories = vec![];
-        for path in paths {
-            let path_buffer = PathBuf::from(path);
-            if filesystem::is_dir(&path_buffer) {
-                directories.push(path_buffer);
-            } else {
-                print_error(format!(
-                    "Search path '{}' is not a directory.",
-                    path_buffer.to_string_lossy()
-                ));
-            }
-        }
-        directories
-    } else {
+    let only_whitelists = matches.is_present("whitelists");
+    let mut search_paths = if only_whitelists {
         let mut directories = vec![];
         for path in get_whitelists() {
             let path_buffer = PathBuf::from(path);
@@ -124,7 +111,24 @@ fn run() -> Result<ExitCode> {
             }
         }
         directories
-        // vec![current_directory.to_path_buf()]
+    } else {
+        if let Some(paths) = passed_arguments {
+            let mut directories = vec![];
+            for path in paths {
+                let path_buffer = PathBuf::from(path);
+                if filesystem::is_dir(&path_buffer) {
+                    directories.push(path_buffer);
+                } else {
+                    print_error(format!(
+                        "Search path '{}' is not a directory.",
+                        path_buffer.to_string_lossy()
+                    ));
+                }
+            }
+            directories
+        } else {
+            vec![current_directory.to_path_buf()]
+        }
     };
 
     // Check if we have no valid search paths.

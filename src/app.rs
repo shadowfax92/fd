@@ -73,6 +73,16 @@ pub fn build_app() -> App<'static, 'static> {
                 ),
         )
         .arg(
+            Arg::with_name("whitelists")
+                .long("whitelists")
+                .short("w")
+                .help("Gets results only from directories present in .whitelists")
+                .long_help(
+                    "When whitelists option is enabled, fd will only run through paths \
+                    that are present in the .whitelists file at the root directory.",
+                ),
+        )
+        .arg(
             Arg::with_name("ignore-case")
                 .long("ignore-case")
                 .short("i")
