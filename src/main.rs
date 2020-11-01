@@ -11,6 +11,7 @@ mod regex_helper;
 mod walk;
 
 use std::env;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process;
 use std::sync::Arc;
@@ -42,6 +43,21 @@ use crate::regex_helper::pattern_has_uppercase_char;
 ))]
 #[global_allocator]
 static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+
+fn get_whitelists() -> std::vec::Vec<String> {
+    let whitelist_path = Path::new("./.whitelists");
+    let result = if whitelist_path.is_file() {
+        let mut output = vec![];
+        let contents = fs::read_to_string(whitelist_path).expect("unable to read .whitelists file");
+        for line in contents.split('\n') {
+            output.push(line.to_owned());
+        }
+        output
+    } else {
+        vec![]
+    };
+    return result;
+}
 
 fn run() -> Result<ExitCode> {
     let matches = app::build_app().get_matches_from(env::args_os());
@@ -98,10 +114,17 @@ fn run() -> Result<ExitCode> {
                 ));
             }
         }
-
         directories
     } else {
-        vec![current_directory.to_path_buf()]
+        let mut directories = vec![];
+        for path in get_whitelists() {
+            let path_buffer = PathBuf::from(path);
+            if filesystem::is_dir(&path_buffer) {
+                directories.push(path_buffer);
+            }
+        }
+        directories
+        // vec![current_directory.to_path_buf()]
     };
 
     // Check if we have no valid search paths.
